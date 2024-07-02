@@ -1,13 +1,35 @@
 pipeline {
     agent any
+
+    environment {
+        MAVEN_VERSION = '3.9.8'
+        MAVEN_HOME = "${env.HOME}/apache-maven-${env.MAVEN_VERSION}"
+        PATH = "${env.MAVEN_HOME}/bin:${env.PATH}"
+    }
+
     stages {
+        stage('Setup') {
+            steps {
+                script {
+                    // Maven 3.9.8 설치
+                    sh '''
+                    if [ ! -d "${MAVEN_HOME}" ]; then
+                        curl -sL https://archive.apache.org/dist/maven/maven-3/3.9.8/binaries/apache-maven-3.9.8-bin.tar.gz -o /tmp/apache-maven-3.9.8-bin.tar.gz
+                        tar xzvf /tmp/apache-maven-3.9.8-bin.tar.gz -C ${HOME}
+                    fi
+                    '''
+                }
+            }
+        }
         stage('Build') {
             steps {
+                echo 'Building...'
                 sh 'mvn -B -DskipTests clean package'
             }
         }
         stage('Test') {
             steps {
+                echo 'Testing...'
                 sh 'mvn test'
             }
             post {
@@ -18,8 +40,17 @@ pipeline {
         }
         stage('Deliver') {
             steps {
+                echo 'Delivering...'
                 sh './jenkins/scripts/deliver.sh'
             }
+        }
+    }
+    post {
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
